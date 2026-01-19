@@ -184,19 +184,22 @@ const ConceptAccordion: React.FC<{
 // App Principal
 // ===============================
 const App: React.FC = () => {
-    const params = new URLSearchParams(window.location.search);
-  const token = params.get("token");
-  const nome = params.get("nome");
+   // 🔐 Segurança nível 1
+  const params = new URLSearchParams(window.location.search);
+  const tokenFromUrl = params.get("token");
+  const nomeFromUrl = params.get("nome");
 
-  if (!token) {
-    return (
-      <div style={{ padding: 40, textAlign: 'center', fontFamily: 'sans-serif' }}>
-        <h2>Acesso restrito</h2>
-        <p>Este laboratório requer uma chave válida.</p>
-      </div>
-    );
-  }
+  const tokenFromStorage = localStorage.getItem("lumina_token");
+  const token = tokenFromUrl || tokenFromStorage;
 
+  useEffect(() => {
+    if (tokenFromUrl) {
+      localStorage.setItem("lumina_token", tokenFromUrl);
+      if (nomeFromUrl) {
+        localStorage.setItem("lumina_nome", nomeFromUrl);
+      }
+    }
+  }, []);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mentorPanelOpen, setMentorPanelOpen] = useState(false);
   
@@ -525,6 +528,11 @@ const App: React.FC = () => {
   ];
 
   return (
+    <>
+      {!token ? (
+        <TelaBloqueio />
+      ) : (
+        <>
     <div className={`min-h-screen flex flex-col md:flex-row bg-slate-50 text-slate-900 transition-colors overflow-hidden font-inter`}>
       <aside className={`fixed md:sticky top-0 inset-y-0 left-0 flex flex-col border-r border-slate-200 bg-white shadow-xl transition-all duration-300 z-[60] h-screen ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
         <div className="p-4 flex items-center justify-between">
