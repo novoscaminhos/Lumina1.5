@@ -184,6 +184,19 @@ const ConceptAccordion: React.FC<{
 // App Principal
 // ===============================
 const App: React.FC = () => {
+    const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  const nome = params.get("nome");
+
+  if (!token) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', fontFamily: 'sans-serif' }}>
+        <h2>Acesso restrito</h2>
+        <p>Este laboratório requer uma chave válida.</p>
+      </div>
+    );
+  }
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mentorPanelOpen, setMentorPanelOpen] = useState(false);
   
