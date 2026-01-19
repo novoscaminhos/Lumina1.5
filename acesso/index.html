@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Acesso ao App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f3f3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .box {
+      background: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      width: 320px;
+      box-shadow: 0 0 10px rgba(0,0,0,.1);
+      text-align: center;
+    }
+    .erro {
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2>Validando acesso...</h2>
+  <div id="msg"></div>
+</div>
+
+<script>
+const APP_URL = "https://LINK-REAL-DO-SEU-APP";
+
+function getTokenFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("token");
+}
+
+async function validar() {
+  const msg = document.getElementById("msg");
+  const token = getTokenFromURL();
+
+  if (!token) {
+    msg.innerHTML = '<span class="erro">Link inválido ou incompleto.</span>';
+    return;
+  }
+
+  try {
+    const response = await fetch("tokens.json");
+    const tokens = await response.json();
+
+    if (tokens[token] && tokens[token].ativo) {
+      msg.textContent = "Acesso liberado. Redirecionando...";
+      setTimeout(() => {
+        window.location.href = APP_URL;
+      }, 1000);
+    } else {
+      msg.innerHTML = '<span class="erro">Acesso expirado ou inválido.</span>';
+    }
+
+  } catch (e) {
+    msg.innerHTML = '<span class="erro">Erro ao validar acesso.</span>';
+  }
+}
+
+validar();
+</script>
+
+</body>
+</html>
