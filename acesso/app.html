@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Lumina</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100">
+
+  <div class="p-4 bg-slate-900 flex justify-between items-center">
+    <span id="boasVindas" class="font-semibold"></span>
+    <button onclick="sair()" class="text-sm text-red-400">Sair</button>
+  </div>
+
+  <iframe
+    src="https://lumina-1-5-downgrade-277430647911.us-west1.run.app"
+    class="w-full h-[calc(100vh-56px)] border-none">
+  </iframe>
+
+<script>
+const nome = sessionStorage.getItem('lumina_nome');
+if (!nome) window.location.href = 'index.html';
+
+document.getElementById('boasVindas').innerText = `Olá, ${nome}!`;
+
+function sair() {
+  sessionStorage.clear();
+  window.location.href = 'index.html';
+}
+</script>
+
+</body>
+</html>
