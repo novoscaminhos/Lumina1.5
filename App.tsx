@@ -233,16 +233,17 @@ const App: React.FC = () => {
   }, []);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mentorPanelOpen, setMentorPanelOpen] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(!!tokenFromUrl);
 
 useEffect(() => {
+  if (!showWelcome) return;
+
   const timer = setTimeout(() => {
     setShowWelcome(false);
   }, 2000);
 
   return () => clearTimeout(timer);
-}, []);
-
+}, [showWelcome]);
 
   // Forcing light mode for the whole app
   const darkMode = false;
