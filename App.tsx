@@ -24,6 +24,37 @@ import { CARD_IMAGES, FALLBACK_IMAGE, BASE64_FALLBACK } from './cardImages';
 // ===============================
 // Componentes de Interface
 // ===============================
+const TelaBoasVindas: React.FC<{ nome: string }> = ({ nome }) => {
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'radial-gradient(circle at center, #1e1b4b, #020617)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#e5e7eb',
+        fontFamily: 'Cinzel, serif',
+        textAlign: 'center'
+      }}
+    >
+      <div>
+        <img
+          src="/favicon.ico"
+          alt="Lumina"
+          style={{ width: 72, marginBottom: 24 }}
+        />
+        <h1 style={{ fontSize: 24, marginBottom: 8 }}>
+          Bem-vindo(a)
+        </h1>
+        <p style={{ fontSize: 18, opacity: 0.8 }}>
+          {nome || 'Estudante Lumina'}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const NavItem: React.FC<{ icon: React.ReactNode; label: string; active: boolean; collapsed: boolean; onClick: () => void }> = ({ icon, label, active, collapsed, onClick }) => (
   <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? 'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.3)]' : 'text-slate-900 hover:bg-slate-200 hover:text-indigo-950 font-bold'} ${collapsed ? 'justify-center px-0' : ''}`} title={collapsed ? label : ""}>
     <div className={`flex items-center justify-center shrink-0 w-6 h-6 ${collapsed ? 'scale-110' : ''}`}>
@@ -202,7 +233,17 @@ const App: React.FC = () => {
   }, []);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mentorPanelOpen, setMentorPanelOpen] = useState(false);
-  
+  const [showWelcome, setShowWelcome] = useState(true);
+
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setShowWelcome(false);
+  }, 2000);
+
+  return () => clearTimeout(timer);
+}, []);
+
+
   // Forcing light mode for the whole app
   const darkMode = false;
 
@@ -528,11 +569,19 @@ const App: React.FC = () => {
   ];
 
   return (
-    <>
-      {!token ? (
-        <TelaBloqueio />
-      ) : (
-        <>
+  <>
+    {!token ? (
+      <TelaBloqueio />
+    ) : showWelcome ? (
+      <TelaBoasVindas
+        nome={
+          nomeFromUrl ||
+          localStorage.getItem("lumina_nome") ||
+          "Estudante Lumina"
+        }
+      />
+    ) : (
+      <>
     <div className={`min-h-screen flex flex-col md:flex-row bg-slate-50 text-slate-900 transition-colors overflow-hidden font-inter`}>
       <aside className={`fixed md:sticky top-0 inset-y-0 left-0 flex flex-col border-r border-slate-200 bg-white shadow-xl transition-all duration-300 z-[60] h-screen ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
         <div className="p-4 flex items-center justify-between">
