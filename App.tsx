@@ -945,8 +945,11 @@ useEffect(() => {
           </>
         )}
       </aside>
-    </div>
+    </>
+        )}
+      </>
   );
 };
 
 export default App;
+
