@@ -24,37 +24,6 @@ import { CARD_IMAGES, FALLBACK_IMAGE, BASE64_FALLBACK } from './cardImages';
 // ===============================
 // Componentes de Interface
 // ===============================
-const TelaBoasVindas: React.FC<{ nome: string }> = ({ nome }) => {
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'radial-gradient(circle at center, #1e1b4b, #020617)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#e5e7eb',
-        fontFamily: 'Cinzel, serif',
-        textAlign: 'center'
-      }}
-    >
-      <div>
-        <img
-          src="/favicon.ico"
-          alt="Lumina"
-          style={{ width: 72, marginBottom: 24 }}
-        />
-        <h1 style={{ fontSize: 24, marginBottom: 8 }}>
-          Bem-vindo(a)
-        </h1>
-        <p style={{ fontSize: 18, opacity: 0.8 }}>
-          {nome || 'Estudante Lumina'}
-        </p>
-      </div>
-    </div>
-  );
-};
-
 const NavItem: React.FC<{ icon: React.ReactNode; label: string; active: boolean; collapsed: boolean; onClick: () => void }> = ({ icon, label, active, collapsed, onClick }) => (
   <button onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? 'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.3)]' : 'text-slate-900 hover:bg-slate-200 hover:text-indigo-950 font-bold'} ${collapsed ? 'justify-center px-0' : ''}`} title={collapsed ? label : ""}>
     <div className={`flex items-center justify-center shrink-0 w-6 h-6 ${collapsed ? 'scale-110' : ''}`}>
@@ -215,37 +184,9 @@ const ConceptAccordion: React.FC<{
 // App Principal
 // ===============================
 const App: React.FC = () => {
-   // 🔐 Segurança nível 1
-  const params = new URLSearchParams(window.location.search);
-  const tokenFromUrl = params.get("token");
-  const nomeFromUrl = params.get("nome");
-
-  const tokenFromStorage = localStorage.getItem("lumina_token");
-  const token = tokenFromUrl || tokenFromStorage;
-
-  useEffect(() => {
-    if (tokenFromUrl) {
-      localStorage.setItem("lumina_token", tokenFromUrl);
-      if (nomeFromUrl) {
-        localStorage.setItem("lumina_nome", nomeFromUrl);
-      }
-    }
-  }, []);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mentorPanelOpen, setMentorPanelOpen] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(!!tokenFromUrl);
-
-useEffect(() => {
-  if (!showWelcome) return;
-
-  const timer = setTimeout(() => {
-    setShowWelcome(false);
-  }, 2000);
-
-  return () => clearTimeout(timer);
-}, [showWelcome]);
-
-  // Forcing light mode for the whole app
+  
   const darkMode = false;
 
   const [view, setView] = useState<'board' | 'fundamentals' | 'glossary' | 'profile' | 'study'>('board');
@@ -271,6 +212,8 @@ useEffect(() => {
 
   const [zoomLevel, setZoomLevel] = useState(1);
   const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
+  const [unscaledHeight, setUnscaledHeight] = useState(800); 
+
   const handleZoomIn = () => setZoomLevel(prev => Math.min(prev + 0.1, 2.5));
   const handleZoomOut = () => setZoomLevel(prev => Math.max(prev - 0.1, 0.4));
   
@@ -280,26 +223,23 @@ useEffect(() => {
       const content = contentRef.current;
       
       const originalTransform = content.style.transform;
-      const originalTransition = content.style.transition;
       content.style.transform = 'none';
-      content.style.transition = 'none';
       
-      void content.offsetHeight;
-      
-      const containerWidth = container.offsetWidth;
-      const containerHeight = container.offsetHeight;
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
       const contentWidth = content.scrollWidth;
       const contentHeight = content.scrollHeight;
       
+      setUnscaledHeight(contentHeight);
       content.style.transform = originalTransform;
-      content.style.transition = originalTransition;
 
-      const padding = 32;
+      // Padding maior para garantir "Best Fit" sem disparar scrollbar
+      const padding = 80;
       const scaleW = (containerWidth - padding) / contentWidth;
       const scaleH = (containerHeight - padding) / contentHeight;
       
       let fitScale = Math.min(scaleW, scaleH);
-      fitScale = Math.max(0.3, Math.min(fitScale, 1.2));
+      fitScale = Math.max(0.25, Math.min(fitScale, 1.1));
       
       setZoomLevel(fitScale);
       setZoomMenuOpen(false);
@@ -307,7 +247,15 @@ useEffect(() => {
       setZoomLevel(1);
       setZoomMenuOpen(false);
     }
-  }, [spreadType]);
+  }, [spreadType, view]);
+
+  // Efeito para "Melhor Ajuste" sempre que o layout ou tabuleiro mudar
+  useEffect(() => {
+    if (view === 'board') {
+      const timer = setTimeout(handleResetZoom, 500); 
+      return () => clearTimeout(timer);
+    }
+  }, [view, spreadType, sidebarCollapsed, mentorPanelOpen, handleResetZoom]);
 
   const [userName, setUserName] = useState('Estudante Lumina');
   const [isExcludingReadings, setIsExcludingReadings] = useState(false);
@@ -335,7 +283,6 @@ useEffect(() => {
     else handleShuffle();
     setSelectedHouse(null);
     setCardAnalysis(null);
-    setZoomLevel(1);
   }, [spreadType, isManualMode]);
 
   const generateShuffledArray = (size: number, excludeIds: number[] = []) => {
@@ -570,19 +517,6 @@ useEffect(() => {
   ];
 
   return (
-  <>
-    {!token ? (
-      <TelaBloqueio />
-    ) : showWelcome ? (
-      <TelaBoasVindas
-        nome={
-          nomeFromUrl ||
-          localStorage.getItem("lumina_nome") ||
-          "Estudante Lumina"
-        }
-      />
-    ) : (
-      <>
     <div className={`min-h-screen flex flex-col md:flex-row bg-slate-50 text-slate-900 transition-colors overflow-hidden font-inter`}>
       <aside className={`fixed md:sticky top-0 inset-y-0 left-0 flex flex-col border-r border-slate-200 bg-white shadow-xl transition-all duration-300 z-[60] h-screen ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
         <div className="p-4 flex items-center justify-between">
@@ -608,7 +542,6 @@ useEffect(() => {
           <NavItem icon={<GraduationCap size={18}/>} label="📘 Modo Estudo" active={view === 'study' || (view === 'board' && studyMode.active)} collapsed={sidebarCollapsed} onClick={() => {setView('study'); setStudyMode(prev => ({ ...prev, active: true }));}} />
         </nav>
         
-        {/* Logo central (Desktop/Expanded) - Exibido entre MODO ESTUDO e os botões de ação */}
         {!sidebarCollapsed && (
           <div className="flex-grow flex flex-col items-center justify-center p-6 select-none pointer-events-none opacity-40 landscape:hidden">
              <img 
@@ -686,35 +619,51 @@ useEffect(() => {
                 <div className={`flex flex-col gap-3 transition-all duration-300 transform origin-bottom ${zoomMenuOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                   <button onClick={handleZoomIn} title="Aumentar Zoom" className={`p-3 rounded-full border shadow-2xl transition-all hover:scale-110 active:scale-95 bg-white border-slate-200 text-indigo-700 hover:bg-indigo-600 hover:text-white`}><ZoomIn size={22} /></button>
                   <button onClick={handleZoomOut} title="Diminuir Zoom" className={`p-3 rounded-full border shadow-2xl transition-all hover:scale-110 active:scale-95 bg-white border-slate-200 text-indigo-700 hover:bg-indigo-600 hover:text-white`}><ZoomOut size={22} /></button>
-                  <button onClick={handleResetZoom} title="Ajustar à Tela" className={`p-3 rounded-full border shadow-2xl transition-all hover:scale-110 active:scale-95 bg-white border-slate-200 text-indigo-700 hover:bg-indigo-600 hover:text-white`}><Maximize2 size={22} /></button>
+                  <button onClick={handleResetZoom} title="Melhor Ajuste" className={`p-3 rounded-full border shadow-2xl transition-all hover:scale-110 active:scale-95 bg-white border-slate-200 text-indigo-700 hover:bg-indigo-600 hover:text-white`}><Maximize2 size={22} /></button>
                   <div className={`mt-2 text-center text-[10px] font-black uppercase tracking-widest text-slate-400`}>{Math.round(zoomLevel * 100)}%</div>
                 </div>
                 <button onClick={() => setZoomMenuOpen(!zoomMenuOpen)} className={`p-4 rounded-full border shadow-2xl transition-all hover:scale-105 active:scale-95 ${zoomMenuOpen ? 'bg-rose-600 border-rose-500' : 'bg-indigo-600 border-indigo-500'} text-white`}>{zoomMenuOpen ? <X size={24} /> : <ZoomIn size={24} />}</button>
               </div>
 
-              <div ref={boardRef} className="flex-grow flex flex-col items-center justify-start md:justify-center min-h-0 w-full py-4 overflow-hidden">
-                {spreadType === 'mesa-real' ? (
-                  <div ref={contentRef} className="max-w-6xl w-full grid grid-cols-8 gap-1 md:gap-3 mx-auto origin-center transition-all duration-300 flex-grow-0" style={{ transform: `scale(${zoomLevel})` }}>
-                    {board.slice(0, 32).map((id, i) => <CardVisual key={`real-${i}-${id}`} card={id ? LENORMAND_CARDS.find(c => c.id === id) : null} houseId={i + 1} isSelected={selectedHouse === i} isThemeCard={false} highlightType={getGeometryHighlight(i)} onClick={() => handleHouseSelection(i)} isManualMode={isManualMode} spreadType="mesa-real" studyModeActive={studyMode.active} isAnimating={isAnimating} />)}
-                    <div className="col-span-8 flex justify-center py-2 md:py-4"><span className="text-[9px] md:text-[11px] font-cinzel font-black tracking-[0.6em] text-slate-500 uppercase opacity-60">VEREDITO</span></div>
-                    <div className="col-span-2"></div>
-                    {board.slice(32, 36).map((id, i) => <CardVisual key={`real-${i+32}-${id}`} card={id ? LENORMAND_CARDS.find(c => c.id === id) : null} houseId={i + 33} isSelected={selectedHouse === i+32} isThemeCard={false} highlightType={getGeometryHighlight(i+32)} onClick={() => handleHouseSelection(i+32)} isManualMode={isManualMode} spreadType="mesa-real" studyModeActive={studyMode.active} isAnimating={isAnimating} />)}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center flex-grow min-h-0 w-full landscape:scale-[0.6] sm:landscape:scale-[0.8] lg:landscape:scale-100 origin-center transition-all">
-                    <div ref={contentRef} className={`relative w-[28rem] h-[28rem] md:w-[32rem] md:h-[32rem] border rounded-full flex items-center justify-center origin-center transition-all border-slate-200`} style={{ transform: `scale(${zoomLevel})` }}>
-                      <div className="absolute w-28 z-20"><CardVisual key={`clock-center-${board[12]}`} card={board[12] ? LENORMAND_CARDS.find(c => c.id === board[12]) : null} houseId={13} isSelected={selectedHouse === 12} isThemeCard={false} highlightType={getGeometryHighlight(12)} onClick={() => handleHouseSelection(12)} isManualMode={isManualMode} spreadType="relogio" studyModeActive={studyMode.active} isAnimating={isAnimating} /></div>
-                      {board.slice(0, 12).map((id, i) => {
-                        const angle = (i * 30) - 90; const rad = angle * Math.PI / 180; const ox = 40 * Math.cos(rad); const oy = 40 * Math.sin(rad);
-                        return (
-                          <div key={`clock-house-${i}-${id}`} className="absolute w-24 aspect-[3/4.2] -translate-x-1/2 -translate-y-1/2 z-10 overflow-visible" style={{ left: `${50 + ox}%`, top: `${50 + oy}%` }}>
-                            <CardVisual card={id ? LENORMAND_CARDS.find(c => c.id === id) : null} houseId={i + 1} isSelected={selectedHouse === i} isThemeCard={false} highlightType={getGeometryHighlight(i)} onClick={() => handleHouseSelection(i)} isManualMode={isManualMode} spreadType="relogio" offsetX={`${ox * 8}px`} offsetY={`${oy * 8}px`} studyModeActive={studyMode.active} isAnimating={isAnimating} />
-                          </div>
-                        );
-                      })}
+              <div ref={boardRef} className="flex-grow flex flex-col items-center justify-start min-h-0 w-full py-10 overflow-y-auto overflow-x-hidden custom-scrollbar scroll-smooth">
+                <div 
+                  className="flex flex-col items-center w-full transition-all duration-500"
+                  style={{ minHeight: `${unscaledHeight * zoomLevel}px` }}
+                >
+                  {spreadType === 'mesa-real' ? (
+                    <div 
+                      ref={contentRef} 
+                      className="max-w-6xl w-full grid grid-cols-8 gap-1 md:gap-3 mx-auto transition-all duration-300 flex-grow-0" 
+                      style={{ 
+                        transform: `scale(${zoomLevel})`, 
+                        transformOrigin: 'top center' 
+                      }}
+                    >
+                      {board.slice(0, 32).map((id, i) => <CardVisual key={`real-${i}-${id}`} card={id ? LENORMAND_CARDS.find(c => c.id === id) : null} houseId={i + 1} isSelected={selectedHouse === i} isThemeCard={false} highlightType={getGeometryHighlight(i)} onClick={() => handleHouseSelection(i)} isManualMode={isManualMode} spreadType="mesa-real" studyModeActive={studyMode.active} isAnimating={isAnimating} />)}
+                      <div className="col-span-8 flex justify-center py-2 md:py-4"><span className="text-[9px] md:text-[11px] font-cinzel font-black tracking-[0.6em] text-slate-500 uppercase opacity-60">VEREDITO</span></div>
+                      <div className="col-span-2"></div>
+                      {board.slice(32, 36).map((id, i) => <CardVisual key={`real-${i+32}-${id}`} card={id ? LENORMAND_CARDS.find(c => c.id === id) : null} houseId={i + 33} isSelected={selectedHouse === i+32} isThemeCard={false} highlightType={getGeometryHighlight(i+32)} onClick={() => handleHouseSelection(i+32)} isManualMode={isManualMode} spreadType="mesa-real" studyModeActive={studyMode.active} isAnimating={isAnimating} />)}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div 
+                      ref={contentRef}
+                      className="flex items-center justify-center flex-grow min-h-0 w-full py-10 origin-top transition-all" 
+                      style={{ transform: `scale(${zoomLevel})` }}
+                    >
+                      <div className={`relative w-[28rem] h-[28rem] md:w-[32rem] md:h-[32rem] border rounded-full flex items-center justify-center border-slate-200`}>
+                        <div className="absolute w-28 z-20"><CardVisual key={`clock-center-${board[12]}`} card={board[12] ? LENORMAND_CARDS.find(c => c.id === board[12]) : null} houseId={13} isSelected={selectedHouse === 12} isThemeCard={false} highlightType={getGeometryHighlight(12)} onClick={() => handleHouseSelection(12)} isManualMode={isManualMode} spreadType="relogio" studyModeActive={studyMode.active} isAnimating={isAnimating} /></div>
+                        {board.slice(0, 12).map((id, i) => {
+                          const angle = (i * 30) - 90; const rad = angle * Math.PI / 180; const ox = 40 * Math.cos(rad); const oy = 40 * Math.sin(rad);
+                          return (
+                            <div key={`clock-house-${i}-${id}`} className="absolute w-24 aspect-[3/4.2] -translate-x-1/2 -translate-y-1/2 z-10 overflow-visible" style={{ left: `${50 + ox}%`, top: `${50 + oy}%` }}>
+                              <CardVisual card={id ? LENORMAND_CARDS.find(c => c.id === id) : null} houseId={i + 1} isSelected={selectedHouse === i} isThemeCard={false} highlightType={getGeometryHighlight(i)} onClick={() => handleHouseSelection(i)} isManualMode={isManualMode} spreadType="relogio" offsetX={`${ox * 8}px`} offsetY={`${oy * 8}px`} studyModeActive={studyMode.active} isAnimating={isAnimating} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}
@@ -945,11 +894,8 @@ useEffect(() => {
           </>
         )}
       </aside>
-    </>
-        )}
-      </>
+    </div>
   );
 };
 
 export default App;
-
