@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   LayoutGrid, RotateCcw, Sparkles, ChevronRight, ChevronLeft, BookOpen, 
@@ -101,14 +100,29 @@ const CardVisual: React.FC<{
   return (
     <div 
       onClick={onClick} 
-      className={`relative group aspect-[3/4.2] rounded-xl border-2 cursor-pointer transition-all duration-500 overflow-visible shadow-xl ${isSelected ? 'border-indigo-400 ring-4 ring-indigo-400/30 scale-105 z-20' : isThemeCard ? 'border-transparent scale-105 z-20' : highlightType ? `${highlightStyles[highlightType]}` : 'border-slate-300 hover:border-slate-400 bg-slate-50'} ${animationClass} ${studyModeActive && !highlightType ? 'opacity-30 scale-95' : ''}`}
+      className={`relative group aspect-[3/4.2] rounded-xl border-2 cursor-pointer transition-all duration-500 overflow-visible shadow-xl 
+        ${isSelected 
+          ? 'border-indigo-600 ring-[6px] ring-indigo-600/30 scale-110 z-50' 
+          : isThemeCard 
+            ? 'border-transparent scale-105 z-20' 
+            : highlightType 
+              ? `${highlightStyles[highlightType]}` 
+              : 'border-slate-300 hover:border-slate-400 bg-slate-50'
+        } 
+        ${animationClass} ${studyModeActive && !highlightType ? 'opacity-30 scale-95' : ''}`}
       style={{ 
         ...(isThemeCard ? { boxShadow: `0 0 30px ${themeColor}, inset 0 0 15px ${themeColor}` } : {}),
+        ...(isSelected ? { boxShadow: `0 0 50px rgba(79, 70, 229, 0.7), inset 0 0 20px rgba(79, 70, 229, 0.4)` } : {}),
         animationDelay,
         ['--offset-x' as any]: offsetX,
         ['--offset-y' as any]: offsetY
       }}
     >
+      {/* Indicador de Seleção Visual (Dashed Border e Glow) - Agora mais visível */}
+      {isSelected && (
+        <div className="absolute -inset-4 border-[4px] border-dashed border-indigo-500/70 rounded-[1.4rem] animate-[spin_12s_linear_infinite] pointer-events-none" />
+      )}
+
       <div className="card-visual-inner">
         {/* FACE FRONTAL */}
         <div className="card-face-front">
@@ -118,9 +132,12 @@ const CardVisual: React.FC<{
             </div>
           )}
           {!card && isManualMode && <div className="absolute inset-0 flex items-center justify-center"><Plus size={16} className={`opacity-30 text-slate-700`} /></div>}
-          <div className="absolute top-1 left-1 z-20">
+          
+          <div className="absolute top-1 left-1 z-20 flex items-center gap-1.5">
             <span className={`text-[7px] md:text-[8px] font-black uppercase bg-black/40 px-1 rounded-sm backdrop-blur-sm text-white`}>CASA {houseId}</span>
+            {isSelected && <div className="p-1 bg-indigo-600 rounded-full text-white shadow-xl scale-110 animate-pulse"><Crosshair size={10} strokeWidth={3} /></div>}
           </div>
+
           {card && (
             <div className="absolute inset-0 z-30 flex flex-col p-2 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent rounded-xl">
               <div className="flex-grow flex flex-col items-center justify-center text-center mt-2">
@@ -201,7 +218,8 @@ const App: React.FC = () => {
   const [isViewingFirstDraw, setIsViewingFirstDraw] = useState(false);
 
   const [selectedHouse, setSelectedHouse] = useState<number | null>(null);
-  const [geometryFilters, setGeometryFilters] = useState<Set<GeometryFilter>>(new Set(['nenhuma']));
+  // Inicia com 'todas' por padrão conforme solicitado
+  const [geometryFilters, setGeometryFilters] = useState<Set<GeometryFilter>>(new Set(['todas']));
   const [showCardPicker, setShowCardPicker] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [cardAnalysis, setCardAnalysis] = useState<string | null>(null);
@@ -210,7 +228,8 @@ const App: React.FC = () => {
   const boardRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const [zoomLevel, setZoomLevel] = useState(1);
+  // Zoom inicial padrão em 0.68 (68%) como valor médio inicial do Melhor Ajuste
+  const [zoomLevel, setZoomLevel] = useState(0.68);
   const [zoomMenuOpen, setZoomMenuOpen] = useState(false);
   const [unscaledHeight, setUnscaledHeight] = useState(800); 
 
@@ -233,18 +252,34 @@ const App: React.FC = () => {
       setUnscaledHeight(contentHeight);
       content.style.transform = originalTransform;
 
-      // Padding maior para garantir "Best Fit" sem disparar scrollbar
-      const padding = 80;
+      // Cálculo de melhor ajuste visando a faixa de 65% a 75% em desktop
+      const padding = 100; 
       const scaleW = (containerWidth - padding) / contentWidth;
       const scaleH = (containerHeight - padding) / contentHeight;
       
       let fitScale = Math.min(scaleW, scaleH);
-      fitScale = Math.max(0.25, Math.min(fitScale, 1.1));
+      
+      const isDesktop = window.innerWidth >= 1024;
+      if (isDesktop) {
+        // Garantindo que no desktop o zoom fique na faixa solicitada de 65% a 75%
+        // se o espaço permitir um zoom maior, travamos em 75%. Se for menor, mantemos o fit real.
+        fitScale = Math.min(fitScale, 0.75);
+        if (fitScale < 0.65) {
+          // Se o espaço for muito pequeno, permitimos o zoom real para caber, 
+          // mas tentamos não descer muito de 65% a menos que necessário.
+        } else {
+          // Se estiver entre 65 e 75, mantemos o fitScale calculado.
+        }
+      } else {
+        fitScale = Math.min(fitScale, 1.0);
+      }
+      
+      fitScale = Math.max(0.25, fitScale);
       
       setZoomLevel(fitScale);
       setZoomMenuOpen(false);
     } else {
-      setZoomLevel(1);
+      setZoomLevel(0.68);
       setZoomMenuOpen(false);
     }
   }, [spreadType, view]);
@@ -584,9 +619,43 @@ const App: React.FC = () => {
                <button onClick={showDicas} className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-600 hover:text-white animate-pulse`}><Lightbulb size={14} /> DICAS</button>
                {!studyMode.active && (
                  <div className={`flex p-1 rounded-xl border bg-white border-slate-200 shadow-sm border shadow-sm`}>
-                   {(['nenhuma', 'ponte', 'cavalo', 'moldura', 'veredito', 'diagonais', 'todas'] as any[]).map(f => (
-                     <button key={f} onClick={() => toggleFilter(f as GeometryFilter)} className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase transition-all ${geometryFilters.has(f as GeometryFilter) ? 'bg-indigo-600 text-white' : 'text-slate-700 hover:text-slate-950'}`}>{f}</button>
-                   ))}
+                   {(['nenhuma', 'ponte', 'cavalo', 'moldura', 'veredito', 'diagonais', 'todas'] as any[]).map(f => {
+                     const isActive = geometryFilters.has(f as GeometryFilter);
+                     const showAll = geometryFilters.has('todas');
+                     
+                     // Cores sombreadas (translúcidas) pedagógicas elegantes conforme solicitado
+                     const colorClasses: Record<string, string> = {
+                       nenhuma: 'bg-slate-600/10 text-slate-700 border-slate-600/20 hover:bg-slate-600/20',
+                       ponte: 'bg-amber-500/10 text-amber-700 border-amber-500/20 hover:bg-amber-500/30', 
+                       cavalo: 'bg-fuchsia-500/10 text-fuchsia-700 border-fuchsia-500/20 hover:bg-fuchsia-500/30', 
+                       moldura: 'bg-amber-600/10 text-amber-800 border-amber-600/20 hover:bg-amber-600/30', 
+                       veredito: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-emerald-500/30', 
+                       diagonais: 'bg-orange-500/10 text-orange-700 border-orange-500/20 hover:bg-orange-500/30', 
+                       todas: 'bg-indigo-600/10 text-indigo-700 border-indigo-600/20 hover:bg-indigo-600/30'
+                     };
+
+                     const activeStyle: Record<string, string> = {
+                        nenhuma: 'bg-slate-600/30 text-slate-900 border-slate-600 shadow-sm ring-1 ring-slate-600/20',
+                        ponte: 'bg-amber-500/30 text-amber-900 border-amber-500 shadow-sm ring-1 ring-amber-500/20',
+                        cavalo: 'bg-fuchsia-500/30 text-fuchsia-900 border-fuchsia-500 shadow-sm ring-1 ring-fuchsia-500/20',
+                        moldura: 'bg-amber-600/30 text-amber-900 border-amber-600 shadow-sm ring-1 ring-amber-600/20',
+                        veredito: 'bg-emerald-500/30 text-emerald-900 border-emerald-500 shadow-sm ring-1 ring-emerald-500/20',
+                        diagonais: 'bg-orange-500/30 text-orange-900 border-orange-500 shadow-sm ring-1 ring-orange-500/20',
+                        todas: 'bg-indigo-600/30 text-indigo-900 border-indigo-600 shadow-sm ring-1 ring-indigo-600/20'
+                     };
+
+                     const isEffectivelyActive = isActive || (showAll && f !== 'nenhuma' && f !== 'todas');
+
+                     return (
+                       <button 
+                         key={f} 
+                         onClick={() => toggleFilter(f as GeometryFilter)} 
+                         className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase transition-all border ${isEffectivelyActive ? activeStyle[f] : colorClasses[f]} ${isEffectivelyActive ? 'scale-105 z-10' : 'opacity-80'}`}
+                       >
+                         {f}
+                       </button>
+                     );
+                   })}
                  </div>
                )}
                
@@ -633,7 +702,7 @@ const App: React.FC = () => {
                   {spreadType === 'mesa-real' ? (
                     <div 
                       ref={contentRef} 
-                      className="max-w-6xl w-full grid grid-cols-8 gap-1 md:gap-3 mx-auto transition-all duration-300 flex-grow-0" 
+                      className="max-w-6xl w-full grid grid-cols-8 gap-2 md:gap-4 mx-auto transition-all duration-300 flex-grow-0" 
                       style={{ 
                         transform: `scale(${zoomLevel})`, 
                         transformOrigin: 'top center' 
